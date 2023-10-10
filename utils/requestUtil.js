@@ -1,7 +1,7 @@
 import { constants } from "./constants.js";
 
 export async function requestUtil({ endpoint, params, operation }) {
-  let url = `${constants.MOTOGP_BASE_URL}${endpoint}?token=${constants.TOKEN}&`;
+  let url = `${constants.MOTOGP_BASE_URL}${endpoint}?token=${constants.TOKEN}`;
   let rqParams = {};
   Object.keys(params).forEach((param, index) => {
     url += `&${param}=${Object.values(params)[index]}`;
