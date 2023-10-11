@@ -76,7 +76,7 @@ async function pilotsProgression() {
   console.log(events);
   const fullResults = await Promise.all(
     events.map(async (event) => {
-      return await requestUtil({
+      const race = await requestUtil({
         endpoint: constants.ENPOINTS.FULL_RESULTS,
         params: {
           eventid: event.id,
@@ -84,13 +84,16 @@ async function pilotsProgression() {
           session: "RAC",
         },
       });
+      return race;
     })
   );
 
-  console.log(fullResults);
+  console.log({ fullResults });
 
   fullResults.forEach((race) => {
     race.forEach((pilot) => {
+      // const race = fullResults[0];
+      // const pilot = race[0];
       pointsPerPilot[pilot.classification_rider_full_name] = pointsPerPilot[
         pilot.classification_rider_full_name
       ]
@@ -98,29 +101,22 @@ async function pilotsProgression() {
           parseInt(pilot.points)
         : parseInt(pilot.points);
       const gpDate = pilot.date.split(" ")[0].split("-");
+      console.log(race);
+      console.log(pointsPerPilot);
+      console.log(series);
       const pilotIndex = series.findIndex(
         (pilotObj) => pilotObj.name == pilot.classification_rider_full_name
       );
-      console.log(
-        new Date(Date.UTC(gpDate[0], parseInt(gpDate[1]) - 1, gpDate[2])),
-        [gpDate[0], gpDate[2], gpDate[1]],
-        race
-      );
+      console.log(pilotIndex);
+
       series[pilotIndex]?.data?.push([
         Date.UTC(gpDate[0], parseInt(gpDate[1]) - 1, gpDate[2]),
         pointsPerPilot[pilot.classification_rider_full_name],
       ]);
-      series[pilotIndex].name = race.name;
     });
   });
 
-  console.log(series);
-  // series.forEach((pilot, index) => {
-  //   series[index].data = pilot.data.sort(
-  //     (firstArray, secondArray) => secondArray[0] - firstArray[0]
-  //   );
-  // });
-  console.log(series);
+  console.log({ series });
 
   Highcharts.chart("container2", {
     chart: {
@@ -148,6 +144,7 @@ async function pilotsProgression() {
         text: "Snow depth (m)",
       },
       min: 0,
+      max: 300,
     },
     tooltip: {
       headerFormat: "<b>{series.name}</b><br>",
