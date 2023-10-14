@@ -1,11 +1,58 @@
 import { requestUtil } from "./utils/requestUtil.js";
+import { addStats } from "./utils/utils.js";
 import { constants } from "./utils/constants.js";
+
+const riderStats = {};
+let raceNames = [];
+
 async function main() {
-  pilotsStats({});
-  pilotsProgression();
+ 
+
+  await pilotsOverall({});
+
+  const selector = document.getElementById("selector");
+
+  const riderLabel = Object.keys(riderStats).reduce((snipet, pilot, index) => {
+    snipet +=
+      index > 2
+        ? `<label><input type="checkbox" name=${pilot} value=option${index}>${pilot}</label>`
+        : `<label><input type="checkbox" name=${pilot} value=option${index} checked>${pilot}</label>`;
+    return snipet;
+  });
+  selector.innerHTML = `<div class="p-4">
+  <button id="mostrarOcultar" class="bg-indigo-500 text-white px-4 py-2 rounded-md">Mostrar Opciones</button>
+  <div id="opciones" class="hidden mt-2 space-y-2">
+     ${riderLabel}
+    
+  </div>
+</div> <script>`;
+
+  const botonMostrarOcultar = document.getElementById("mostrarOcultar");
+
+  botonMostrarOcultar.addEventListener("click", function () {
+    const opciones = document.getElementById("opciones");
+    opciones.classList.toggle("hidden");
+  });
+
+  await pilotsData();
+  const opciones = document.getElementById("opciones");
+  const ops = Array.from(
+    document.querySelectorAll("#opciones input[type=checkbox]")
+  );
+  console.log(ops);
+  const names = ops.map((item) => item.closest("label").innerText);
+  pilotsProgression({ names: names.slice(0, 3) });
+
+  opciones.addEventListener("change", async () => {
+    const opciones = Array.from(
+      document.querySelectorAll("#opciones input[type=checkbox]:checked")
+    );
+    const names = opciones.map((item) => item.closest("label").innerText);
+    pilotsProgression({ names });
+  });
 }
 
-async function pilotsStats({}) {
+async function pilotsOverall({}) {
   const pilots = await requestUtil({
     endpoint: constants.ENPOINTS.STANDING_RIDERS,
     params: {
@@ -14,8 +61,8 @@ async function pilotsStats({}) {
     },
     operation: "Get Riders",
   });
-
   const data = pilots.map((pilot) => {
+    riderStats[pilot.classification_rider_full_name] = [];
     return {
       name: pilot.classification_rider_full_name,
       y: pilot.classification_points_id,
@@ -27,13 +74,13 @@ async function pilotsStats({}) {
 
   data.sort(() => Math.random() - 0.5);
 
-  Highcharts.chart("container", {
+  Highcharts.chart("overallPie", {
     chart: {
       type: "variablepie",
     },
     title: {
-      text: "Pilots points",
-      align: "left",
+      text: "Points per Pilot",
+      align: "center",
     },
     tooltip: {
       headerFormat: "",
@@ -51,31 +98,110 @@ async function pilotsStats({}) {
         name: "countries",
         borderRadius: 5,
         data,
-        colors: [
-          "#4caefe",
-          "#3dc3e8",
-          "#2dd9db",
-          "#1feeaf",
-          "#0ff3a0",
-          "#00e887",
-          "#23e274",
-        ],
+      },
+    ],
+  });
+
+  const barSeries = [];
+  const teams = [];
+  pilots.forEach((pilot) => {
+    const team = barSeries.find(
+      (team) => team.name == pilot.classification_team_name
+    );
+
+    if (team) {
+      team.y += pilot.classification_points_id;
+    } else {
+      barSeries.push({
+        name: pilot.classification_team_name,
+        y: 0,
+      });
+      teams.push(pilot.classification_team_name);
+    }
+  });
+
+  // Create the chart
+  Highcharts.chart("overallBars", {
+    chart: {
+      type: "column",
+    },
+    title: {
+      align: "center",
+      text: "Points per Team",
+    },
+    subtitle: {
+      align: "left",
+      text: "",
+    },
+    accessibility: {
+      announceNewData: {
+        enabled: true,
+      },
+    },
+    xAxis: {
+      type: "category",
+      title: {
+        text: "Team",
+      },
+    },
+    yAxis: {
+      title: {
+        text: "Points",
+      },
+    },
+    legend: {
+      enabled: false,
+    },
+    plotOptions: {
+      series: {
+        borderWidth: 0,
+        dataLabels: {
+          enabled: true,
+          format: "{point.y:.1f}",
+        },
+      },
+    },
+
+    tooltip: {
+      headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+      pointFormat:
+        '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}</b> points<br/>',
+    },
+
+    series: [
+      {
+        name: "Team",
+        colorByPoint: true,
+        data: barSeries,
       },
     ],
   });
 }
 
-async function pilotsProgression() {
+async function pilotsData() {
   let events = await requestUtil({
     endpoint: constants.ENPOINTS.EVENTS,
     params: { year: 2023 },
   });
   events = events.filter((event) => event.test != 1);
-  const series = constants.ridersObject;
-  const pointsPerPilot = {};
-  console.log(events);
-  const fullResults = await Promise.all(
+  events = events.reverse();
+  events.forEach((event) => {
+    if (event.year >= 2023) {
+      raceNames.push(`S ${event.circuit_name}`);
+    }
+    raceNames.push(`R ${event.circuit_name}`);
+  });
+  await Promise.all(
     events.map(async (event) => {
+      const sprint = await requestUtil({
+        endpoint: constants.ENPOINTS.FULL_RESULTS,
+        params: {
+          eventid: event.id,
+          categoryid: constants.MOTOGP_CATEGORY_ID,
+          session: "SPR",
+        },
+      });
+
       const race = await requestUtil({
         endpoint: constants.ENPOINTS.FULL_RESULTS,
         params: {
@@ -84,113 +210,99 @@ async function pilotsProgression() {
           session: "RAC",
         },
       });
+      addStats({ event: sprint, riderStats });
+      addStats({ event: race, riderStats });
       return race;
     })
   );
 
-  console.log({ fullResults });
+  Object.keys(riderStats).forEach((pilot) => {
+    riderStats[pilot] = riderStats[pilot].sort((a, b) => a.date - b.date);
+  });
+}
 
-  fullResults.forEach((race) => {
-    race.forEach((pilot) => {
-      // const race = fullResults[0];
-      // const pilot = race[0];
-      pointsPerPilot[pilot.classification_rider_full_name] = pointsPerPilot[
-        pilot.classification_rider_full_name
-      ]
-        ? parseInt(pointsPerPilot[pilot.classification_rider_full_name]) +
-          parseInt(pilot.points)
-        : parseInt(pilot.points);
-      const gpDate = pilot.date.split(" ")[0].split("-");
-      console.log(race);
-      console.log(pointsPerPilot);
-      console.log(series);
-      const pilotIndex = series.findIndex(
-        (pilotObj) => pilotObj.name == pilot.classification_rider_full_name
-      );
-      console.log(pilotIndex);
-
-      series[pilotIndex]?.data?.push([
-        Date.UTC(gpDate[0], parseInt(gpDate[1]) - 1, gpDate[2]),
-        pointsPerPilot[pilot.classification_rider_full_name],
-      ]);
-    });
+function pilotsProgression({ names }) {
+  const stats = names.map((name) => {
+    return { name, data: riderStats[name] };
+  });
+  const pointsData = stats.map((rider) => {
+    const points = [];
+    rider.data.reduce((accumulated, classification) => {
+      const classPoints = accumulated + parseInt(classification.points);
+      points.push(classPoints);
+      return classPoints;
+    }, 0);
+    return {
+      name: rider.name,
+      data: points,
+    };
   });
 
-  console.log({ series });
-
-  Highcharts.chart("container2", {
+  Highcharts.chart("pilotsProgression", {
     chart: {
-      type: "spline",
+      type: "streamgraph",
+      marginBottom: 30,
+      zoomType: "x",
     },
+
     title: {
-      text: "Snow depth at Vikjafjellet, Norway",
+      floating: true,
+      align: "left",
+      text: "Pilots progression over season",
     },
     subtitle: {
-      text: "Irregular time data in Highcharts JS",
+      floating: true,
+      align: "left",
+      y: 30,
+      text: "",
     },
+
     xAxis: {
-      type: "datetime",
-      dateTimeLabelFormats: {
-        // don't display the year
-        month: "%e. %b",
-        year: "%b",
+      maxPadding: 0,
+      type: "category",
+      crosshair: true,
+      categories: raceNames,
+      labels: {
+        align: "left",
+        rotation: 270,
+        overflow: "justify", // Set overflow to 'justify' to allow full text display
       },
-      title: {
-        text: "Date",
-      },
+      lineWidth: 0,
+      margin: 10,
+      tickWidth: 0,
     },
+
     yAxis: {
-      title: {
-        text: "Snow depth (m)",
-      },
-      min: 0,
-      max: 300,
+      visible: false,
+      startOnTick: false,
+      endOnTick: false,
     },
-    tooltip: {
-      headerFormat: "<b>{series.name}</b><br>",
-      pointFormat: "{point.x:%e. %b}: {point.y:.2f} points",
+
+    legend: {
+      enabled: false,
     },
 
     plotOptions: {
       series: {
-        marker: {
-          enabled: true,
-          radius: 2.5,
+        label: {
+          minFontSize: 5,
+          maxFontSize: 15,
+          style: {
+            color: "rgba(255,255,255,0.75)",
+          },
+        },
+        accessibility: {
+          exposeAsGroupOnly: true,
         },
       },
     },
 
-    colors: [
-      "#6CF",
-      "#39F",
-      "#06C",
-      "#036",
-      "#000",
-      "#F00",
-      "#0F0",
-      "#00F",
-      "#FF0",
-      "#F0F",
-      "#0FF",
-      "#C60",
-      "#C06",
-      "#60C",
-      "#6C0",
-      "#909",
-      "#933",
-      "#963",
-      "#996",
-      "#366",
-      "#369",
-      "#639",
-      "#693",
-      "#936",
-      "#963",
-    ],
-    // Define the data points. All series have a year of 1970/71 in order
-    // to be compared on the same x axis. Note that in JavaScript, months start
-    // at 0 for January, 1 for February etc.
-    series,
+    series: pointsData,
+
+    exporting: {
+      sourceWidth: 800,
+      sourceHeight: 600,
+    },
   });
 }
 

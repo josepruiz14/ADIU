@@ -8,10 +8,11 @@
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/variable-pie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://code.highcharts.com/modules/streamgraph.js"></script>
     <script type="module" src="./main.js" defer></script>
   </head>
   <body class="font-sans">
-    <nav class="fixed top-0 left-0 right-0 shadow bg-gray-900 text-white p-4">
+    <nav class="fixed top-0 flex justify-between left-0 right-0 shadow bg-gray-900 text-white p-4">
       <ul class="flex space-x-4">
         <li><a href="#">Home</a></li>
         <li><a target="_blank" href="https://www.uib.cat">UIB</a></li>
@@ -24,6 +25,13 @@
         </li>
         <li><a href="#">Contact</a></li>
       </ul>
+<select id="selectYear" class="text-grey">
+  <option value="2023">2023</option>
+  <option value="2022">2022</option>
+  <option value="2021">2021</option>
+  <option value="2020">2020</option>
+  
+</select>
     </nav>
 
     <div class="flex-col min-w-screen min-h-screen text-white bg-gray-700">
@@ -37,11 +45,24 @@
           standings, all at your fingertips. Stay in the fast lane with us!
         </p>
       </div>
-      <div id="container" class="flex p-5 w-full justify-center">
-        aqui iran las graficas
+      <div class="flex  min-h-screen">
+        <div id="overallPie" class="flex p-5 w-full justify-center">
+          aqui iran las graficas
+        </div>
+        <div id="overallBars" class="flex p-5 w-full justify-center">
+          aqui iran las graficas
+        </div>
       </div>
-      <div id="container2" class="flex p-5 w-full justify-center">
-        aqui iran las graficas
+        
+    </div>
+
+
+      <div id="selector">
+
+      </div>
+      <div id="pilotsProgression" class="flex-col p-5 w-full align-center">
+        <p class="text-center"> Waiting for data...</p>
+        <img class="justify-center" src="./assets/loading2.gif">
       </div>
     </div>
   </body>
