@@ -62,13 +62,13 @@ async function pilotsOverall({}) {
     operation: "Get Riders",
   });
   const data = pilots.map((pilot) => {
-    riderStats[pilot.classification_rider_full_name] = [];
+    riderStats[pilot._rider_full_name] = [];
     return {
-      name: pilot.classification_rider_full_name,
-      y: pilot.classification_points_id,
+      name: pilot.rider_full_name,
+      y: pilot.points,
       z: 1,
-      team: pilot.classification_team_name,
-      position: pilot.classification_position,
+      team: pilot.team_name,
+      position: pilot.position,
     };
   });
 
@@ -106,17 +106,17 @@ async function pilotsOverall({}) {
   const teams = [];
   pilots.forEach((pilot) => {
     const team = barSeries.find(
-      (team) => team.name == pilot.classification_team_name
+      (team) => team.name == pilot.team_name
     );
 
     if (team) {
-      team.y += pilot.classification_points_id;
+      team.y += pilot.points_id;
     } else {
       barSeries.push({
-        name: pilot.classification_team_name,
+        name: pilot.team_name,
         y: 0,
       });
-      teams.push(pilot.classification_team_name);
+      teams.push(pilot.team_name);
     }
   });
 
