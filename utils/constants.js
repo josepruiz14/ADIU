@@ -1,8 +1,8 @@
 export const constants = {
-  MOTOGP_BASE_URL: "https://racingmike.com/api/v1.0/",
+  MOTOGP_BASE_URL: "http://localhost/ADIU/connectors/database.connector.php",
   ENPOINTS: {
     SEASONS: "motogp-season",
-    STANDING_RIDERS: "motogp-world-standing-riders",
+    STANDING_RIDERS: "motogp_world_standing_riders",
     EVENTS: "motogp-events",
     FULL_RESULTS: "motogp-full-results",
   },

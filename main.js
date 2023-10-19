@@ -6,61 +6,56 @@ const riderStats = {};
 let raceNames = [];
 
 async function main() {
- 
-
   await pilotsOverall({});
 
-  const selector = document.getElementById("selector");
+  //   const selector = document.getElementById("selector");
 
-  const riderLabel = Object.keys(riderStats).reduce((snipet, pilot, index) => {
-    snipet +=
-      index > 2
-        ? `<label><input type="checkbox" name=${pilot} value=option${index}>${pilot}</label>`
-        : `<label><input type="checkbox" name=${pilot} value=option${index} checked>${pilot}</label>`;
-    return snipet;
-  });
-  selector.innerHTML = `<div class="p-4">
-  <button id="mostrarOcultar" class="bg-indigo-500 text-white px-4 py-2 rounded-md">Mostrar Opciones</button>
-  <div id="opciones" class="hidden mt-2 space-y-2">
-     ${riderLabel}
-    
-  </div>
-</div> <script>`;
+  //   const riderLabel = Object.keys(riderStats).reduce((snipet, pilot, index) => {
+  //     snipet +=
+  //       index > 2
+  //         ? `<label><input type="checkbox" name=${pilot} value=option${index}>${pilot}</label>`
+  //         : `<label><input type="checkbox" name=${pilot} value=option${index} checked>${pilot}</label>`;
+  //     return snipet;
+  //   });
+  //   selector.innerHTML = `<div class="p-4">
+  //   <button id="mostrarOcultar" class="bg-indigo-500 text-white px-4 py-2 rounded-md">Mostrar Opciones</button>
+  //   <div id="opciones" class="hidden mt-2 space-y-2">
+  //      ${riderLabel}
 
-  const botonMostrarOcultar = document.getElementById("mostrarOcultar");
+  //   </div>
+  // </div> <script>`;
 
-  botonMostrarOcultar.addEventListener("click", function () {
-    const opciones = document.getElementById("opciones");
-    opciones.classList.toggle("hidden");
-  });
+  //   const botonMostrarOcultar = document.getElementById("mostrarOcultar");
 
-  await pilotsData();
-  const opciones = document.getElementById("opciones");
-  const ops = Array.from(
-    document.querySelectorAll("#opciones input[type=checkbox]")
-  );
-  console.log(ops);
-  const names = ops.map((item) => item.closest("label").innerText);
-  pilotsProgression({ names: names.slice(0, 3) });
+  //   botonMostrarOcultar.addEventListener("click", function () {
+  //     const opciones = document.getElementById("opciones");
+  //     opciones.classList.toggle("hidden");
+  //   });
 
-  opciones.addEventListener("change", async () => {
-    const opciones = Array.from(
-      document.querySelectorAll("#opciones input[type=checkbox]:checked")
-    );
-    const names = opciones.map((item) => item.closest("label").innerText);
-    pilotsProgression({ names });
-  });
+  //   await pilotsData();
+  //   const opciones = document.getElementById("opciones");
+  //   const ops = Array.from(
+  //     document.querySelectorAll("#opciones input[type=checkbox]")
+  //   );
+  //   console.log(ops);
+  //   const names = ops.map((item) => item.closest("label").innerText);
+  //   pilotsProgression({ names: names.slice(0, 3) });
+
+  //   opciones.addEventListener("change", async () => {
+  //     const opciones = Array.from(
+  //       document.querySelectorAll("#opciones input[type=checkbox]:checked")
+  //     );
+  //     const names = opciones.map((item) => item.closest("label").innerText);
+  //     pilotsProgression({ names });
+  //   });
 }
 
 async function pilotsOverall({}) {
   const pilots = await requestUtil({
-    endpoint: constants.ENPOINTS.STANDING_RIDERS,
-    params: {
-      year: 2023,
-      categoryid: constants.MOTOGP_CATEGORY_ID,
-    },
-    operation: "Get Riders",
+    body: { query: "SELECT * FROM `motogp_world_standing_riders`;" },
+    operation: "POST",
   });
+  return;
   const data = pilots.map((pilot) => {
     riderStats[pilot.rider_full_name] = [];
     return {
@@ -105,9 +100,7 @@ async function pilotsOverall({}) {
   const barSeries = [];
   const teams = [];
   pilots.forEach((pilot) => {
-    const team = barSeries.find(
-      (team) => team.name == pilot.team_name
-    );
+    const team = barSeries.find((team) => team.name == pilot.team_name);
 
     if (team) {
       team.y += pilot.points_id;

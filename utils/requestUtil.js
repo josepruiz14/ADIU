@@ -1,15 +1,20 @@
 import { constants } from "./constants.js";
 
-export async function requestUtil({ endpoint, params, operation }) {
-  let url = `${constants.MOTOGP_BASE_URL}${endpoint}?token=${constants.TOKEN}`;
-  let rqParams = {};
-  Object.keys(params).forEach((param, index) => {
-    url += `&${param}=${Object.values(params)[index]}`;
-    rqParams[param] = Object.values(params)[index];
-  });
-
+export async function requestUtil({ endpoint, body, params, operation }) {
   try {
-    const response = await axios.get(url);
+    console.log(body);
+    console.log({ url: constants.MOTOGP_BASE_URL });
+    let response;
+    switch (operation) {
+      case "POST":
+        response = await axios.post(constants.MOTOGP_BASE_URL, {
+          body: JSON.stringify(body),
+        });
+        break;
+      case "GET":
+        break;
+    }
+    console.log(response);
     return response.data;
   } catch (error) {
     console.log(error);
