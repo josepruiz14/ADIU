@@ -52,66 +52,67 @@ async function main() {
 
 async function pilotsOverall({}) {
   const pilots = await requestUtil({
-    body: { query: "SELECT * FROM `motogp_world_standing_riders`;" },
+    params: { query: "SELECT * FROM `motogp_world_standing_riders`;" },
     operation: "POST",
   });
-  return;
-  const data = pilots.map((pilot) => {
+  let data = pilots.map((pilot) => {
     riderStats[pilot.rider_full_name] = [];
     return {
       name: pilot.rider_full_name,
-      y: pilot.points,
+      y: parseInt(pilot.points),
       z: 1,
       team: pilot.team_name,
       position: pilot.position,
     };
   });
 
-  data.sort(() => Math.random() - 0.5);
+  data = data.sort(() => Math.random() - 0.5);
+  console.log(data);
 
-  Highcharts.chart("overallPie", {
-    chart: {
-      type: "variablepie",
-    },
-    title: {
-      text: "Points per Pilot",
-      align: "center",
-    },
-    tooltip: {
-      headerFormat: "",
-      pointFormat:
-        '<span style="color:{point.color}">\u25CF</span> <b> {point.name}</b><br/>' +
-        "Position: <b>{point.position}</b><br/>" +
-        "Points: <b>{point.y}</b><br/>" +
-        "Team: <b>{point.team}</b><br/>",
-    },
-    series: [
-      {
-        minPointSize: 10,
-        innerSize: "20%",
-        zMin: 0,
-        name: "countries",
-        borderRadius: 5,
-        data,
+  try {
+    Highcharts.chart("overallPie", {
+      chart: {
+        type: "pie",
       },
-    ],
-  });
-
+      title: {
+        text: "Points per Pilot",
+        align: "center",
+      },
+      tooltip: {
+        headerFormat: "",
+        pointFormat:
+          '<span style="color:{point.color}">\u25CF</span> <b> {point.name}</b><br/>' +
+          "Position: <b>{point.position}</b><br/>" +
+          "Points: <b>{point.y}</b><br/>" +
+          "Team: <b>{point.team}</b><br/>",
+      },
+      series: [
+        {
+          minPointSize: 10,
+          innerSize: "20%",
+          zMin: 0,
+          borderRadius: 5,
+          data,
+        },
+      ],
+    });
+  } catch (error) {
+    console.log(error);
+  }
   const barSeries = [];
-  const teams = [];
+  const constructors = [];
   pilots.forEach((pilot) => {
-    const team = barSeries.find((team) => team.name == pilot.team_name);
-
-    if (team) {
-      team.y += pilot.points_id;
+    const constructor = constructors.find(
+      (item) => item.name == pilot.constructor_name
+    );
+    if (constructor) {
+      constructor.y += 1;
     } else {
-      barSeries.push({
-        name: pilot.team_name,
-        y: 0,
-      });
-      teams.push(pilot.team_name);
+      constructors.push({ name: pilot.constructor_name, y: 1 });
     }
   });
+  console.log(constructors);
+  console.log(barSeries);
 
   // Create the chart
   Highcharts.chart("overallBars", {
@@ -165,7 +166,7 @@ async function pilotsOverall({}) {
       {
         name: "Team",
         colorByPoint: true,
-        data: barSeries,
+        data: constructors,
       },
     ],
   });
