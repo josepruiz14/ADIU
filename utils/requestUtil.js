@@ -1,21 +1,16 @@
 import { constants } from "./constants.js";
 
 export async function requestUtil({ endpoint, params, operation }) {
-  try {
-    let response;
-    const data = new FormData(); // Usaremos FormData para enviar datos en la solicitud POST
-    Object.keys(params).forEach((param) => {
-      data.append(param, params[param]);
-    });
-    response = await fetch(constants.MOTOGP_BASE_URL, {
-      method: "POST",
-      body: data,
-    });
-    const responsJSON = await response.json();
-    console.log(responsJSON);
-    return responsJSON;
+  let url = `${constants.MOTOGP_API_BASE_URL}${endpoint}?token=${constants.TOKEN}`;
+  let rqParams = {};
+  Object.keys(params).forEach((param, index) => {
+    url += `&${param}=${Object.values(params)[index]}`;
+    rqParams[param] = Object.values(params)[index];
+  });
 
-    // ... (manejo de la respuesta)
+  try {
+    const response = await axios.get(url);
+    return response.data;
   } catch (error) {
     console.log(error);
   }

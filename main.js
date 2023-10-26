@@ -1,3 +1,4 @@
+import { requestDataBaseUtil } from "./utils/requestDataBaseUtil.js";
 import { requestUtil } from "./utils/requestUtil.js";
 import { addStats } from "./utils/utils.js";
 import { constants } from "./utils/constants.js";
@@ -8,50 +9,56 @@ let raceNames = [];
 async function main() {
   await pilotsOverall({});
 
-  //   const selector = document.getElementById("selector");
+  setButtons();
 
-  //   const riderLabel = Object.keys(riderStats).reduce((snipet, pilot, index) => {
-  //     snipet +=
-  //       index > 2
-  //         ? `<label><input type="checkbox" name=${pilot} value=option${index}>${pilot}</label>`
-  //         : `<label><input type="checkbox" name=${pilot} value=option${index} checked>${pilot}</label>`;
-  //     return snipet;
-  //   });
-  //   selector.innerHTML = `<div class="p-4">
-  //   <button id="mostrarOcultar" class="bg-indigo-500 text-white px-4 py-2 rounded-md">Mostrar Opciones</button>
-  //   <div id="opciones" class="hidden mt-2 space-y-2">
-  //      ${riderLabel}
+  await pilotsData();
 
-  //   </div>
-  // </div> <script>`;
+  console.log({ riderStats });
+  const opciones = document.getElementById("opciones");
+  const ops = Array.from(
+    document.querySelectorAll("#opciones input[type=checkbox]")
+  );
+  console.log(ops);
+  const names = ops.map((item) => item.closest("label").innerText);
+  pilotsProgression({ names: names.slice(0, 3) });
 
-  //   const botonMostrarOcultar = document.getElementById("mostrarOcultar");
+  opciones.addEventListener("change", async () => {
+    const opciones = Array.from(
+      document.querySelectorAll("#opciones input[type=checkbox]:checked")
+    );
+    const names = opciones.map((item) => item.closest("label").innerText);
+    pilotsProgression({ names });
+  });
+}
 
-  //   botonMostrarOcultar.addEventListener("click", function () {
-  //     const opciones = document.getElementById("opciones");
-  //     opciones.classList.toggle("hidden");
-  //   });
+function setButtons() {
+  const selector = document.getElementById("selector");
 
-  //   await pilotsData();
-  //   const opciones = document.getElementById("opciones");
-  //   const ops = Array.from(
-  //     document.querySelectorAll("#opciones input[type=checkbox]")
-  //   );
-  //   console.log(ops);
-  //   const names = ops.map((item) => item.closest("label").innerText);
-  //   pilotsProgression({ names: names.slice(0, 3) });
+  const riderLabel = Object.keys(riderStats).reduce((snipet, pilot, index) => {
+    snipet +=
+      index > 2
+        ? `<label><input type="checkbox" name=${pilot} value=option${index}>${pilot}</label>`
+        : `<label><input type="checkbox" name=${pilot} value=option${index} checked>${pilot}</label>`;
+    return snipet;
+  });
+  selector.innerHTML = `<div class="p-4">
+  <button id="mostrarOcultar" class="bg-indigo-500 text-white px-4 py-2 rounded-md">Mostrar Opciones</button>
+  <div id="opciones" class="hidden mt-2 space-y-2">
+     ${riderLabel}
+    
+  </div>
+</div> <script>`;
 
-  //   opciones.addEventListener("change", async () => {
-  //     const opciones = Array.from(
-  //       document.querySelectorAll("#opciones input[type=checkbox]:checked")
-  //     );
-  //     const names = opciones.map((item) => item.closest("label").innerText);
-  //     pilotsProgression({ names });
-  //   });
+  const botonMostrarOcultar = document.getElementById("mostrarOcultar");
+
+  botonMostrarOcultar.addEventListener("click", function () {
+    const opciones = document.getElementById("opciones");
+    opciones.classList.toggle("hidden");
+  });
 }
 
 async function pilotsOverall({}) {
-  const pilots = await requestUtil({
+  const pilots = await requestDataBaseUtil({
     params: { query: "SELECT * FROM `motogp_world_standing_riders`;" },
     operation: "POST",
   });
@@ -173,43 +180,53 @@ async function pilotsOverall({}) {
 }
 
 async function pilotsData() {
+  //All year events are gotten from the API
   let events = await requestUtil({
     endpoint: constants.ENPOINTS.EVENTS,
     params: { year: 2023 },
   });
+  //Filter only races
   events = events.filter((event) => event.test != 1);
   events = events.reverse();
+  console.log({ events });
+
   events.forEach((event) => {
-    if (event.year >= 2023) {
-      raceNames.push(`S ${event.circuit_name}`);
-    }
+    raceNames.push(`S ${event.circuit_name}`);
     raceNames.push(`R ${event.circuit_name}`);
   });
+
+  //Get results from every event
   await Promise.all(
     events.map(async (event) => {
-      const sprint = await requestUtil({
-        endpoint: constants.ENPOINTS.FULL_RESULTS,
-        params: {
-          eventid: event.id,
-          categoryid: constants.MOTOGP_CATEGORY_ID,
-          session: "SPR",
-        },
-      });
+      //We get the sprint results of the event
+      // const sprint = await requestUtil({
+      //   endpoint: constants.ENPOINTS.FULL_RESULTS,
+      //   params: {
+      //     eventid: event.id,
+      //     categoryid: constants.MOTOGP_CATEGORY_ID,
+      //     session: "SPR",
+      //   },
+      // });
 
+      //We get the sprint results of the event
       const race = await requestUtil({
         endpoint: constants.ENPOINTS.FULL_RESULTS,
         params: {
           eventid: event.id,
-          categoryid: constants.MOTOGP_CATEGORY_ID,
-          session: "RAC",
+          year: 2023,
+          session: "af960ae0-845e-4fac-a431-4a7ea6c7d128",
         },
       });
-      addStats({ event: sprint, riderStats });
+      // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=8ed52491-e1aa-49a9-8d70-f1c1f8dd3090&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
+      // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=cd3d90d8-b8ec-44b1-976d-cd8929af0c8b&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
+
+      //Save results to the corresponding pilotStats
+      // addStats({ event: sprint, riderStats });
       addStats({ event: race, riderStats });
-      return race;
     })
   );
 
+  //Sort by date
   Object.keys(riderStats).forEach((pilot) => {
     riderStats[pilot] = riderStats[pilot].sort((a, b) => a.date - b.date);
   });
