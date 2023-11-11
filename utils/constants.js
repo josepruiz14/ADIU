@@ -6,6 +6,7 @@ export const constants = {
     STANDING_RIDERS: "motogp_world_standing_riders",
     EVENTS: "motogp-events",
     FULL_RESULTS: "motogp-full-results",
+    SESSIONS: "motogp-sessions",
   },
   TOKEN: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
   MOTOGP_CATEGORY_ID: "e8c110ad-64aa-4e8e-8a86-f2f152f6a942",

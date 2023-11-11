@@ -7,18 +7,21 @@ const riderStats = {};
 let raceNames = [];
 
 async function main() {
+  // https://racingmike.com/api/v1.0/motogp-sessions-spr?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&year=2023
+  const a = await requestUtil({
+    endpoint: "motogp-sessions-spr",
+    params: { year: 2023 },
+  });
+  console.log({ a });
   await pilotsOverall({});
 
   setButtons();
 
   await pilotsData();
-
-  console.log({ riderStats });
   const opciones = document.getElementById("opciones");
   const ops = Array.from(
     document.querySelectorAll("#opciones input[type=checkbox]")
   );
-  console.log(ops);
   const names = ops.map((item) => item.closest("label").innerText);
   pilotsProgression({ names: names.slice(0, 3) });
 
@@ -191,37 +194,60 @@ async function pilotsData() {
   console.log({ events });
 
   events.forEach((event) => {
-    raceNames.push(`S ${event.circuit_name}`);
-    raceNames.push(`R ${event.circuit_name}`);
+    raceNames.push(`S ${event.circuit_place}`);
+    raceNames.push(`R ${event.circuit_place}`);
   });
+
+  await Promise.all(
+    events.map(async (event) => {
+      const eventSession = await requestUtil({
+        endpoint: constants.ENPOINTS.SESSIONS,
+        params: {
+          year: 2023,
+          categoryid: constants.MOTOGP_CATEGORY_ID,
+          eventid: event.id,
+        },
+        operation: "Sessions",
+      });
+
+      event.sessions = eventSession.filter((session) =>
+        ["RAC", "SPR"].includes(session.type)
+      );
+    })
+  );
+
+  console.log({ events });
 
   //Get results from every event
   await Promise.all(
     events.map(async (event) => {
-      //We get the sprint results of the event
-      // const sprint = await requestUtil({
-      //   endpoint: constants.ENPOINTS.FULL_RESULTS,
-      //   params: {
-      //     eventid: event.id,
-      //     categoryid: constants.MOTOGP_CATEGORY_ID,
-      //     session: "SPR",
-      //   },
-      // });
+      // We get the sprint results of the event
+      const sprint = await requestUtil({
+        endpoint: constants.ENPOINTS.FULL_RESULTS,
+        params: {
+          eventid: event.id,
+          year: 2023,
+          session: event.sessions[1].id,
+        },
+      });
+      console.log({ sprint });
 
+      ///api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=874cada0-7330-44c1-aa54-d15b97d3cd62&categoryid=e8c110ad-64aa-4e8e-8a86-f2f152f6a942&session=07b3b309-ca32-44bc-b4b4-938f3cff4ff1
+      ///api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=874cada0-7330-44c1-aa54-d15b97d3cd62&year=2023&session=07b3b309-ca32-44bc-b4b4-938f3cff4ff1
       //We get the sprint results of the event
       const race = await requestUtil({
         endpoint: constants.ENPOINTS.FULL_RESULTS,
         params: {
           eventid: event.id,
           year: 2023,
-          session: "af960ae0-845e-4fac-a431-4a7ea6c7d128",
+          session: event.sessions[0].id,
         },
       });
       // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=8ed52491-e1aa-49a9-8d70-f1c1f8dd3090&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
       // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=cd3d90d8-b8ec-44b1-976d-cd8929af0c8b&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
 
       //Save results to the corresponding pilotStats
-      // addStats({ event: sprint, riderStats });
+      addStats({ event: sprint, riderStats });
       addStats({ event: race, riderStats });
     })
   );
@@ -230,9 +256,12 @@ async function pilotsData() {
   Object.keys(riderStats).forEach((pilot) => {
     riderStats[pilot] = riderStats[pilot].sort((a, b) => a.date - b.date);
   });
+
+  console.log({ riderStats });
 }
 
 function pilotsProgression({ names }) {
+  console.log({ riderStats });
   const stats = names.map((name) => {
     return { name, data: riderStats[name] };
   });
@@ -248,7 +277,9 @@ function pilotsProgression({ names }) {
       data: points,
     };
   });
-
+  console.log({ raceNames });
+  console.log({ stats });
+  console.log({ pointsData });
   Highcharts.chart("pilotsProgression", {
     chart: {
       type: "streamgraph",
