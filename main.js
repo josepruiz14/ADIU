@@ -7,12 +7,10 @@ const riderStats = {};
 let raceNames = [];
 
 async function main() {
-  // https://racingmike.com/api/v1.0/motogp-sessions-spr?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&year=2023
   const a = await requestUtil({
     endpoint: "motogp-sessions-spr",
     params: { year: 2023 },
   });
-  console.log({ a });
   await pilotsOverall({});
 
   setButtons();
@@ -77,7 +75,6 @@ async function pilotsOverall({}) {
   });
 
   data = data.sort(() => Math.random() - 0.5);
-  console.log(data);
 
   try {
     Highcharts.chart("overallPie", {
@@ -116,13 +113,16 @@ async function pilotsOverall({}) {
       (item) => item.name == pilot.constructor_name
     );
     if (constructor) {
-      constructor.y += 1;
+      constructor.y += parseInt(pilot.points);
     } else {
-      constructors.push({ name: pilot.constructor_name, y: 1 });
+      constructors.push({
+        name: pilot.constructor_name,
+        y: parseInt(pilot.points),
+      });
     }
   });
-  console.log(constructors);
-  console.log(barSeries);
+
+  console.log({ constructors });
 
   // Create the chart
   Highcharts.chart("overallBars", {
@@ -180,6 +180,66 @@ async function pilotsOverall({}) {
       },
     ],
   });
+  console.log({ pilots });
+  const nationsInfo = pilots.reduce((nations, pilot) => {
+    const index = nations.findIndex(
+      (nation) => nation[0] == pilot.rider_country_name
+    );
+    if (index > -1) {
+      nations[index][1] += parseFloat(1);
+      return nations;
+    }
+    return [
+      ...nations,
+      [pilot.rider_country_name, parseFloat(1), parseFloat(1)],
+    ];
+  }, []);
+
+  console.log({ nationsInfo });
+
+  Highcharts.chart("overallNations", {
+    chart: {
+      type: "variwide",
+    },
+
+    title: {
+      text: "Pilots Nation",
+    },
+
+    // subtitle: {
+    //   text:
+    //     'Source: <a href="http://ec.europa.eu/eurostat/web/' +
+    //     'labour-market/labour-costs/main-tables">eurostat</a>',
+    // },
+
+    xAxis: {
+      type: "category",
+    },
+
+    // caption: {
+    //   text: "Column widths are proportional to GDP",
+    // },
+
+    legend: {
+      enabled: false,
+    },
+
+    series: [
+      {
+        name: "Labor Costs",
+        data: nationsInfo,
+        dataLabels: {
+          enabled: true,
+          format: "{point.y}",
+        },
+        tooltip: {
+          pointFormat: "Quantity <b> {point.y}</b><br>",
+        },
+        borderRadius: 3,
+        colorByPoint: true,
+      },
+    ],
+  });
 }
 
 async function pilotsData() {
@@ -191,7 +251,6 @@ async function pilotsData() {
   //Filter only races
   events = events.filter((event) => event.test != 1);
   events = events.reverse();
-  console.log({ events });
 
   events.forEach((event) => {
     raceNames.push(`S ${event.circuit_place}`);
@@ -216,8 +275,6 @@ async function pilotsData() {
     })
   );
 
-  console.log({ events });
-
   //Get results from every event
   await Promise.all(
     events.map(async (event) => {
@@ -230,10 +287,7 @@ async function pilotsData() {
           session: event.sessions[1].id,
         },
       });
-      console.log({ sprint });
 
-      ///api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=874cada0-7330-44c1-aa54-d15b97d3cd62&categoryid=e8c110ad-64aa-4e8e-8a86-f2f152f6a942&session=07b3b309-ca32-44bc-b4b4-938f3cff4ff1
-      ///api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=874cada0-7330-44c1-aa54-d15b97d3cd62&year=2023&session=07b3b309-ca32-44bc-b4b4-938f3cff4ff1
       //We get the sprint results of the event
       const race = await requestUtil({
         endpoint: constants.ENPOINTS.FULL_RESULTS,
@@ -243,8 +297,6 @@ async function pilotsData() {
           session: event.sessions[0].id,
         },
       });
-      // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=8ed52491-e1aa-49a9-8d70-f1c1f8dd3090&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
-      // https://racingmike.com/api/v1.0/motogp-full-results?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9&eventid=cd3d90d8-b8ec-44b1-976d-cd8929af0c8b&year=2023&session=af960ae0-845e-4fac-a431-4a7ea6c7d128
 
       //Save results to the corresponding pilotStats
       addStats({ event: sprint, riderStats });
@@ -256,12 +308,9 @@ async function pilotsData() {
   Object.keys(riderStats).forEach((pilot) => {
     riderStats[pilot] = riderStats[pilot].sort((a, b) => a.date - b.date);
   });
-
-  console.log({ riderStats });
 }
 
 function pilotsProgression({ names }) {
-  console.log({ riderStats });
   const stats = names.map((name) => {
     return { name, data: riderStats[name] };
   });
@@ -277,9 +326,6 @@ function pilotsProgression({ names }) {
       data: points,
     };
   });
-  console.log({ raceNames });
-  console.log({ stats });
-  console.log({ pointsData });
   Highcharts.chart("pilotsProgression", {
     chart: {
       type: "streamgraph",
